@@ -9,10 +9,9 @@
   :dependencies [[org.slf4j/slf4j-api "1.6.6"]
                  [jvyaml/jvyaml "1.0.0"]
                  [com.google.guava/guava "13.0"]]
-  :deploy-repositories {"releases" {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-                                    :creds :gpg}
-                        "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots"
-                                     :creds :gpg}}
+  :deploy-repositories {"releases" {:url "https://nexus.criteo.prod/content/repositories/criteo.releases/"
+                                    :sign-releases false}
+                        "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots"}}
   :scm {:connection "scm:git:git://github.com/nathanmarz/dfs-datastores.git"
         :developerConnection "scm:git:ssh://git@github.com/nathanmarz/dfs-datastores.git"
         :url "https://github.com/nathanmarz/dfs-datastores"
