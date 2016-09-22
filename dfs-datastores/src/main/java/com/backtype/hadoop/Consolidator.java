@@ -147,6 +147,7 @@ public class Consolidator {
 
         FileSystem fs;
         ConsolidatorArgs args;
+        Path rootTmp = new Path("/tmp/consolidator");
 
         public void map(ArrayWritable sourcesArr, Text target, OutputCollector<NullWritable, NullWritable> oc, Reporter rprtr) throws IOException {
 
@@ -159,7 +160,7 @@ public class Consolidator {
             //must have failed after succeeding to create file but before task finished - this is valid
             //because path is selected with a UUID
             if(!fs.exists(finalFile)) {
-                Path tmpFile = new Path("/tmp/consolidator/" + UUID.randomUUID().toString());
+                Path tmpFile = new Path(rootTmp + UUID.randomUUID().toString());
                 fs.mkdirs(tmpFile.getParent());
 
                 String status = "Consolidating " + sources.size() + " files into " + tmpFile.toString();
@@ -204,6 +205,7 @@ public class Consolidator {
         @Override
         public void configure(JobConf conf) {
             args = (ConsolidatorArgs) Utils.getObject(conf, ARGS);
+            rootTmp = new Path(conf.get("pail.consolidate.tmpdir", "/tmp/consolidator"));
             try {
                 fs = Utils.getFS(args.fsUri, conf);
             } catch(IOException e) {

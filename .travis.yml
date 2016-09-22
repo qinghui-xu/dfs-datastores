@@ -14,4 +14,4 @@ jdk:
   - openjdk6
 notifications:
   email:
-    - soren@dopeness.org
+    - rivers@criteo.com
