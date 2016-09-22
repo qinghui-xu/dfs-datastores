@@ -26,6 +26,7 @@
                  [:developer
                   [:name "Sam Ritchie"]
                   [:url "http://twitter.com/sritchie"]]]
+  :source-paths ["src/main/java"]
   :javac-options ["-source" "1.6" "-target" "1.6"]
   :java-source-paths ["src/main/java" "src/test/java"]
   :junit ["src/test/java"]
