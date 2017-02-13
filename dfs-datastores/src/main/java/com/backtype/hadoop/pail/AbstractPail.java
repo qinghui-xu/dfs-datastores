@@ -96,7 +96,6 @@ public abstract class AbstractPail {
         Path metaPath = toStoredMetadataPath(metafilename);
         Path metaTmpPath = toStoredMetadataTmpPath(metafilename);
         mkdirs(metaTmpPath.getParent());
-        delete(metaPath, false);
         delete(metaTmpPath, false);
         RecordOutputStream os = createOutputStream(metaTmpPath);
         os.writeRaw(("M" + metadata).getBytes("UTF-8")); //ensure that it's not an empty record
