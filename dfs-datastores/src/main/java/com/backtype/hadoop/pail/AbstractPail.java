@@ -100,7 +100,7 @@ public abstract class AbstractPail {
         RecordOutputStream os = createOutputStream(metaTmpPath);
         os.writeRaw(("M" + metadata).getBytes("UTF-8")); //ensure that it's not an empty record
         os.close();
-        if(! rename(metaTmpPath, metaPath)) {
+        if(! overwrite(metaTmpPath, metaPath)) {
             throw new IOException("failed to write metadata \"" + metadata + "\" to " + metafilename);
         }
     }
@@ -122,6 +122,7 @@ public abstract class AbstractPail {
     protected abstract boolean delete(Path path, boolean recursive) throws IOException;
     protected abstract boolean exists(Path path) throws IOException;
     protected abstract boolean rename(Path source, Path dest) throws IOException;
+    protected abstract boolean overwrite(Path source, Path dest) throws IOException;
     protected abstract boolean mkdirs(Path path) throws IOException;
     protected abstract FileStatus[] listStatus(Path path) throws IOException;
 

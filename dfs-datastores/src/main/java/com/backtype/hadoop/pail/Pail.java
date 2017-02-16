@@ -10,9 +10,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -233,6 +235,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     public Pail(FileSystem fs, String path) throws IOException {
         super(path);
         _fs = fs;
+
         _root = getRoot(fs, new Path(path));
         if(_root==null || !fs.exists(new Path(path)))
             throw new IllegalArgumentException("Pail does not exist at path " + path);
@@ -561,7 +564,14 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
 
     @Override
     protected boolean rename(Path source, Path dest) throws IOException {
-        return FileUtil.copy(_fs, source, _fs, dest, true, true, _fs.getConf());
+        return _fs.rename(source, dest);
+    }
+
+    @Override
+    protected boolean overwrite(Path source, Path dest) throws IOException {
+        FileContext fileContext = FileContext.getFileContext(_fs.getConf());
+        fileContext.rename(source, dest, Options.Rename.OVERWRITE);
+        return true;
     }
 
     @Override
