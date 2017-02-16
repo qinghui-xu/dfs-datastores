@@ -100,7 +100,9 @@ public abstract class AbstractPail {
         RecordOutputStream os = createOutputStream(metaTmpPath);
         os.writeRaw(("M" + metadata).getBytes("UTF-8")); //ensure that it's not an empty record
         os.close();
-        rename(metaTmpPath, metaPath);
+        if(! rename(metaTmpPath, metaPath)) {
+            throw new IOException("failed to write metadata \"" + metadata + "\" to " + metafilename);
+        }
     }
 
     public String getMetadata(String metafilename) throws IOException {
