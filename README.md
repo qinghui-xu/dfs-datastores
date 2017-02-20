@@ -1,4 +1,4 @@
-# dfs-datastores [![Build Status](https://secure.travis-ci.org/criteo-forks/dfs-datastores.png?branch=master)](http://travis-ci.org/criteo-forks/dfs-datastores)
+# dfs-datastores [![Build Status](https://secure.travis-ci.org/criteo-forks/dfs-datastores.png?branch=criteo)](http://travis-ci.org/criteo-forks/dfs-datastores)
 
 A dramatically simpler and more powerful way to store records on a distributed filesystem.
 

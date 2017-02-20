@@ -8,7 +8,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.slf4j/slf4j-api "1.6.6"]
                  [jvyaml/jvyaml "1.0.0"]
-                 [com.google.guava/guava "13.0"]]
+                 [com.google.guava/guava "13.0"]
+                 ]
   :deploy-repositories {"releases" {:url "https://nexus.criteo.prod/content/repositories/criteo.releases/"
                                     :sign-releases false}
                         "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots"}}
@@ -31,10 +32,18 @@
   :java-source-paths ["src/main/java" "src/test/java"]
   :junit ["src/test/java"]
   :profiles {:dev
-             {:dependencies [[org.slf4j/slf4j-log4j12 "1.6.6"]]
+             {:dependencies [
+                             [org.slf4j/slf4j-log4j12 "1.6.6"]
+                             [junit/junit "4.12"]
+                             ]
               :plugins [[lein-junit "1.1.5"]]}
              :provided
-             {:dependencies [[org.apache.hadoop/hadoop-core "1.2.1"]]}}
+             {:dependencies [
+                             [org.apache.hadoop/hadoop-mapreduce-client-core "2.7.0"]
+                             [org.apache.hadoop/hadoop-mapreduce-client-common "2.7.0"]
+                             [org.apache.hadoop/hadoop-hdfs "2.7.0"]
+                             [org.apache.hadoop/hadoop-common "2.7.0"]
+                             ]}}
   :classifiers {:javadoc {:java-source-paths ^:replace []
                           :source-paths ^:replace []
                           :resource-paths ^:replace []}

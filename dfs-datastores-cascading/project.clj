@@ -34,9 +34,17 @@
   :java-source-paths ["src/main/java" "src/test/java"]
   :junit ["src/test/java"]
   :profiles {:dev
-             {:plugins [[lein-junit "1.1.5"]]}
+             {:plugins [
+                        [lein-junit "1.1.5"]
+                        [junit/junit "4.12"]
+                        ]}
              :provided
-             {:dependencies [[org.apache.hadoop/hadoop-core "1.2.1"]]}}
+             {:dependencies [
+                             [org.apache.hadoop/hadoop-mapreduce-client-core "2.7.0"]
+                             [org.apache.hadoop/hadoop-mapreduce-client-common "2.7.0"]
+                             [org.apache.hadoop/hadoop-hdfs "2.7.0"]
+                             [org.apache.hadoop/hadoop-common "2.7.0"]
+                             ]}}
   :classifiers {:javadoc {:java-source-paths ^:replace []
                           :source-paths ^:replace []
                           :resource-paths ^:replace []}
