@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 import junit.framework.TestCase;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import static com.backtype.support.TestUtils.*;
@@ -307,6 +308,13 @@ public class PailTest extends TestCase {
         assertEquals(2, md.size());
         assertTrue(md.contains("a/b"));
         assertTrue(md.contains("aaa"));
+
+        // create an empty metafile
+        pail.getFileSystem().createNewFile(new Path(pail.getRoot(), "dummy.metafile"));
+        // write new data inside metafile
+        pail.writeMetadata("dummy", "lclclc2");
+        // check that new value is set
+        assertEquals(pail.getMetadata("dummy"), "lclclc2");
     }
 
     public void testAtRoot() throws Exception {
