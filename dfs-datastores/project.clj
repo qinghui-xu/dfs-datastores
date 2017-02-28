@@ -9,6 +9,8 @@
   :dependencies [[org.slf4j/slf4j-api "1.6.6"]
                  [jvyaml/jvyaml "1.0.0"]
                  [com.google.guava/guava "13.0"]
+                 [junit/junit "4.12" :scope "test"]
+                 [com.backtype/dfs-datastores-util ~VERSION :scope "test"]
                  ]
   :deploy-repositories {"releases" {:url "https://nexus.criteo.prod/content/repositories/criteo.releases/"
                                     :sign-releases false}
@@ -28,7 +30,8 @@
                   [:name "Sam Ritchie"]
                   [:url "http://twitter.com/sritchie"]]]
   :source-paths ["src/main/java"]
-  :javac-options ["-source" "1.6" "-target" "1.6"]
+  :test-paths ["src/test/java"]
+  :javac-options ["-source" "1.7" "-target" "1.7"]
   :java-source-paths ["src/main/java" "src/test/java"]
   :junit ["src/test/java"]
   :profiles {:dev
@@ -36,7 +39,12 @@
                              [org.slf4j/slf4j-log4j12 "1.6.6"]
                              [junit/junit "4.12"]
                              ]
-              :plugins [[lein-junit "1.1.5"]]}
+              :plugins [[lein-junit "1.1.8"]]}
+             :test
+             {:dependencies [
+                             [org.slf4j/slf4j-log4j12 "1.6.6"]
+                             ]
+              :plugins [[lein-junit "1.1.8"]]}
              :provided
              {:dependencies [
                              [org.apache.hadoop/hadoop-mapreduce-client-core "2.7.0"]
@@ -48,4 +56,7 @@
                           :source-paths ^:replace []
                           :resource-paths ^:replace []}
                 :sources {:java-source-paths ^:replace []
-                          :resource-paths ^:replace []}})
+                          :resource-paths ^:replace []}
+                :test {:java-source-paths ^:replace ["test"]
+                       :resource-paths ^:replace ["test"]}
+                })
