@@ -1,5 +1,7 @@
 package com.backtype.hadoop.pail;
 
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -14,6 +16,7 @@ import java.util.Map;
 
 
 public class PailSpec implements Writable, Serializable {
+
     private String name;
     private Map<String, Object> args;
     private PailStructure structure;
@@ -97,8 +100,19 @@ public class PailSpec implements Writable, Serializable {
     }
 
     public static PailSpec parseFromStream(InputStream is) {
-        Map format = (Map) YAML.load(new InputStreamReader(is));
-        return parseFromMap(format);
+        StringWriter writer = new StringWriter();
+        try {
+            IOUtils.copy(is, writer, Charsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read pail spec.", e);
+        }
+        String yaml = writer.toString();
+        try {
+            Map format = (Map) YAML.load(yaml);
+            return parseFromMap(format);
+        } catch (Exception e) {
+            throw new RuntimeException("Pail spec is malformatted: " + yaml, e);
+        }
     }
 
     protected static PailStructure getStructureFromClass(String klass) {
