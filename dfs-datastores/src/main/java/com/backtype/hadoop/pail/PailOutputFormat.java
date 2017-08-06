@@ -20,8 +20,8 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
     public static final String SPEC_ARG = "pail_spec_arg";
 
     // we limit the size of outputted files because of s3 file limits
-    public static final long FILE_LIMIT_SIZE_BYTES = 1L * 1024 * 1024 * 1024; // 1GB
-
+    public static final long DEFAULT_FILE_LIMIT_SIZE_BYTES = 1L * 1024 * 1024 * 1024; // 1GB
+    public static final String FILE_LIMIT_SIZE_BYTES_KEY = "pail.output.file.limit.size.bytes";
 
     /**
      * Change this to just use Pail#writeObject - automatically fix up BytesWritable
@@ -29,6 +29,7 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
     public static class PailRecordWriter implements RecordWriter<Text, BytesWritable> {
         private Pail _pail;
         private String _unique;
+        private final long fileLimitSizeBytes;
 
         protected static class OpenAttributeFile {
             public String attr;
@@ -48,6 +49,7 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
         private int numFilesOpened = 0;
 
         public PailRecordWriter(JobConf conf, String unique, Progressable p) throws IOException {
+            fileLimitSizeBytes = conf.getLong(PailOutputFormat.FILE_LIMIT_SIZE_BYTES_KEY, DEFAULT_FILE_LIMIT_SIZE_BYTES);
             PailSpec spec = (PailSpec) Utils.getObject(conf, SPEC_ARG);
 
             Path path = getOutputPath(conf);
@@ -63,7 +65,11 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
         public void write(Text k, BytesWritable v) throws IOException {
             String attr = k.toString();
             OpenAttributeFile oaf = _outputters.get(attr);
-            if(oaf!=null && oaf.numBytesWritten >= FILE_LIMIT_SIZE_BYTES) {
+            if (oaf != null && (oaf.os.getPos() >= fileLimitSizeBytes || oaf.os.getPos() == -1L && oaf.numBytesWritten >= fileLimitSizeBytes)) {
+                // fetch the actual number of bytes written physically on the FileSystem by getting the offset of the file
+                // or if offset is not supported by the writer, get the number of bytes sent to the writer.
+                // if this number is greater than a threshold set via conf key pail.output.file.limit.size.bytes and with a default of 1GB,
+                // then close current file and open a new one.
                 closeAttributeFile(oaf);
                 oaf = null;
                 _outputters.remove(attr);

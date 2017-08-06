@@ -31,4 +31,8 @@ public class SimpleOutputStream implements RecordOutputStream {
     public void close() throws IOException {
         _os.close();
     }
+
+    public long getPos() throws IOException {
+        return _os.size();
+    }
 }

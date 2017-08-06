@@ -75,6 +75,10 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
             }
         }
 
+        public long getPos() {
+            return -1L;
+        }
+
         protected List<String> makeRelative(List<String> attrs) {
             return Utils.stripRoot(getAttrs(), attrs);
         }

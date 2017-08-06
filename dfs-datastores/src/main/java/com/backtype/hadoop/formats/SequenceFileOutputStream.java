@@ -37,4 +37,8 @@ public class SequenceFileOutputStream implements RecordOutputStream {
         _writer.close();
     }
 
+    public long getPos() throws IOException {
+        return  _writer.getLength();
+    }
+
 }

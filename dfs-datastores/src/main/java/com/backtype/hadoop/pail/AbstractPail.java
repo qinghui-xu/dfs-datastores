@@ -56,6 +56,10 @@ public abstract class AbstractPail {
             }
         }
 
+        public long getPos() throws IOException {
+            return delegate.getPos();
+        }
+
         public void writeRaw(byte[] record, int start, int length) throws IOException {
             delegate.writeRaw(record, start, length);
         }
