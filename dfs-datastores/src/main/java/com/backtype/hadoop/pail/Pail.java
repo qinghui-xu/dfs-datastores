@@ -75,7 +75,18 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
             }
         }
 
-        public long getPos() {
+        /**
+         * Most of the time there will be only one worker, because it's used inside an OpenAttributeFile, and pail is
+         * opening one OpenAttributeFile per partition. Each OpenAttributeFile is managing its size either based on
+         * bytes written to the stream or actual bytes physically written. This method will return the later.
+         * If there are more than one worker, return -1 because we cannot return a meaningful value.
+         */
+        public long getPos() throws IOException {
+            if (_workers.size() == 1) {
+                for (RecordOutputStream os : _workers.values()) {
+                    return os.getPos();
+                }
+            }
             return -1L;
         }
 

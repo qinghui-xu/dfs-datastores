@@ -19,8 +19,10 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
     public static Logger LOG = LoggerFactory.getLogger(PailOutputFormat.class);
     public static final String SPEC_ARG = "pail_spec_arg";
 
-    // we limit the size of outputted files because of s3 file limits
-    public static final long DEFAULT_FILE_LIMIT_SIZE_BYTES = 1L * 1024 * 1024 * 1024; // 1GB
+    // we want to have ~512MB files in output
+    // if compression is enabled, it can buffer 1MB of data by default before compression
+    // so 512MB - 2MB = 500MB
+    public static final long DEFAULT_FILE_LIMIT_SIZE_BYTES = 512L * 1024 * 1024; // 510MB
     public static final String FILE_LIMIT_SIZE_BYTES_KEY = "pail.output.file.limit.size.bytes";
 
     /**
@@ -49,7 +51,8 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
         private int numFilesOpened = 0;
 
         public PailRecordWriter(JobConf conf, String unique, Progressable p) throws IOException {
-            fileLimitSizeBytes = conf.getLong(PailOutputFormat.FILE_LIMIT_SIZE_BYTES_KEY, DEFAULT_FILE_LIMIT_SIZE_BYTES);
+            int ioSeqfileCompressBlocksize = conf.getInt("io.seqfile.compress.blocksize", 1000000);
+            fileLimitSizeBytes = conf.getLong(PailOutputFormat.FILE_LIMIT_SIZE_BYTES_KEY, DEFAULT_FILE_LIMIT_SIZE_BYTES - 2 * ioSeqfileCompressBlocksize);
             PailSpec spec = (PailSpec) Utils.getObject(conf, SPEC_ARG);
 
             Path path = getOutputPath(conf);
@@ -65,7 +68,8 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
         public void write(Text k, BytesWritable v) throws IOException {
             String attr = k.toString();
             OpenAttributeFile oaf = _outputters.get(attr);
-            if (oaf != null && (oaf.os.getPos() >= fileLimitSizeBytes || oaf.os.getPos() == -1L && oaf.numBytesWritten >= fileLimitSizeBytes)) {
+            if (oaf != null && (oaf.os.getPos() >= fileLimitSizeBytes ||
+                    oaf.os.getPos() == -1L && oaf.numBytesWritten >= fileLimitSizeBytes)) {
                 // fetch the actual number of bytes written physically on the FileSystem by getting the offset of the file
                 // or if offset is not supported by the writer, get the number of bytes sent to the writer.
                 // if this number is greater than a threshold set via conf key pail.output.file.limit.size.bytes and with a default of 1GB,
@@ -92,11 +96,21 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
             logProgress();
         }
 
+        /**
+         * Log information every 10000th record written.
+         * Log the bytes written to the stream and the actual bytes written on disk if available.
+         */
         protected void logProgress() {
             writtenRecords++;
-            if(writtenRecords%100000 == 0) {
+            if(writtenRecords%10000 == 0) {
                 for(OpenAttributeFile oaf: _outputters.values()) {
-                    LOG.info("Attr:" + oaf.attr + " Filename:" + oaf.filename + " Bytes written:" + oaf.numBytesWritten);
+
+                    try {
+                        long pos = oaf.os.getPos();
+                        LOG.info("Attr:" + oaf.attr + " Filename:" + oaf.filename + " Bytes written:" + oaf.numBytesWritten + " " + pos);
+                    } catch (IOException e) {
+                        LOG.info("Attr:" + oaf.attr + " Filename:" + oaf.filename + " Bytes written:" + oaf.numBytesWritten);
+                    }
                 }
             }
         }
