@@ -255,7 +255,7 @@ public abstract class AbstractPail {
         FileStatus[] contents = listStatus(abs);
         for(FileStatus stat: contents) {
             Path p = stat.getPath();
-            if(stat.isDir()) {
+            if(stat.isDirectory()) {
                 getFilesHelper(p, relify(rel, stat.getPath().getName()), extensions, stripExtension, files);
             } else {
                 String filename = relify(rel, stat.getPath().getName());

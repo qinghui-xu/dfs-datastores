@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.backtype.hadoop.BalancedDistcp;
 import com.backtype.hadoop.Coercer;
-import com.backtype.hadoop.Consolidator;
 import com.backtype.hadoop.PathLister;
 import com.backtype.hadoop.RenameMode;
 import com.backtype.hadoop.formats.RecordInputStream;
@@ -529,32 +528,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     }
 
     public void consolidate(long maxSize) throws IOException {
-        List<String> toCheck = new ArrayList<String>();
-        toCheck.add("");
-        PailStructure structure = getSpec().getStructure();
-        List<String> consolidatedirs = new ArrayList<String>();
-        while(toCheck.size()>0) {
-            String dir = toCheck.remove(0);
-            List<String> dirComponents = componentsFromRoot(dir);
-            if(structure.isValidTarget(dirComponents.toArray(new String[dirComponents.size()]))) {
-                consolidatedirs.add(toFullPath(dir));
-            } else {
-                FileStatus[] contents = listStatus(new Path(toFullPath(dir)));
-                for(FileStatus f: contents) {
-                    if(!f.isDir()) {
-                        if(f.getPath().toString().endsWith(EXTENSION))
-                            throw new IllegalStateException(f.getPath().toString() + " is not a dir and breaks the structure of " + getInstanceRoot());
-                    } else {
-                        String newDir;
-                        if(dir.length()==0) newDir = f.getPath().getName();
-                        else newDir = dir + "/" + f.getPath().getName();
-                        toCheck.add(newDir);
-                    }
-                }
-            }
-        }
-
-        Consolidator.consolidate(_fs, _format, new PailPathLister(false), consolidatedirs, maxSize, EXTENSION);
+        Consolidator.consolidate(_fs, this, _format, new PailPathLister(false), maxSize, EXTENSION);
     }
 
     @Override
@@ -601,21 +575,21 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
         FileStatus[] arr =  _fs.listStatus(path);
         List<FileStatus> ret = new ArrayList<FileStatus>();
         for(FileStatus fs: arr) {
-            if(!fs.isDir() || !fs.getPath().getName().startsWith("_")) {
+            if(!fs.isDirectory() || !fs.getPath().getName().startsWith("_")) {
                 ret.add(fs);
             }
         }
         return ret.toArray(new FileStatus[ret.size()]);
     }
 
-    protected String toFullPath(String relpath) {
+    String toFullPath(String relpath) {
        Path p;
        if(relpath.length()==0) p = new Path(getInstanceRoot());
        else p = new Path(getInstanceRoot(), relpath);
        return p.toString();
     }
 
-    protected List<String> componentsFromRoot(String relpath) {
+    List<String> componentsFromRoot(String relpath) {
        String fullpath = toFullPath(relpath);
        List<String> full = Utils.componentize(fullpath);
        List<String> root = Utils.componentize(getRoot());

@@ -16,11 +16,11 @@ import org.apache.hadoop.fs.Path;
 import static com.backtype.support.TestUtils.*;
 
 public class PailOpsTest extends FSTestCase {
-    private void writeStrings(Pail pail, String userfile, String... strs) throws IOException {
+    public static void writeStrings(Pail pail, String userfile, String... strs) throws IOException {
         writeStrings(pail, userfile, Arrays.asList(strs));
     }
 
-    private void writeStrings(Pail pail, String userfile, Collection<String> strs) throws IOException {
+    public static void writeStrings(Pail pail, String userfile, Collection<String> strs) throws IOException {
         RecordOutputStream os = pail.openWrite(userfile);
         for(String s: strs) {
             os.writeRaw(s.getBytes());
@@ -28,7 +28,7 @@ public class PailOpsTest extends FSTestCase {
         os.close();
     }
 
-    public List<String> readWithIt(Pail<byte[]> pail) {
+    public static List<String> readWithIt(Pail<byte[]> pail) {
         List<String> returned = new ArrayList<String>();
         for(byte[] b: pail) {
             returned.add(new String(b));
@@ -70,70 +70,6 @@ public class PailOpsTest extends FSTestCase {
         assertPailContents(pail, "b1", "c1", "za1", "za2", "zb1", "za3");
         pail.clear();
         assertPailContents(pail);
-    }
-
-    public void testConsolidationOne() throws Exception {
-        String path = getTmpPath(local, "pail");
-        Pail pail = Pail.create(local, path);
-        writeStrings(pail, "aaa", "a", "b", "c", "d", "e");
-        writeStrings(pail, "b/c/ddd", "1", "2", "3");
-        writeStrings(pail, "b/c/eee", "aaa", "bbb", "ccc", "ddd", "eee", "fff");
-        writeStrings(pail, "f", "z");
-        writeStrings(pail, "g", "zz");
-        writeStrings(pail, "h", "zzz");
-        pail.writeMetadata("a/b/qqq", "lalala");
-        pail.writeMetadata("f", "abc");
-        pail.consolidate();
-        assertEquals(1, pail.getUserFileNames().size());
-        Set<String> results = new HashSet<String>(readWithIt(pail));
-        Set<String> expected = new HashSet<String>(Arrays.asList("a", "b", "c", "d", "e",
-                "1", "2", "3","aaa", "bbb", "ccc", "ddd", "eee", "fff","z", "zz", "zzz"));
-        assertEquals(expected, results);
-        assertEquals("abc", pail.getMetadata("f"));
-        assertEquals("lalala", pail.getMetadata("a/b/qqq"));
-    }
-
-    public void testConsolidationMany() throws Exception {
-        String path = getTmpPath(local, "pail");
-        Pail pail = Pail.create(local, path);
-        writeStrings(pail, "aaa", "a", "b", "c", "d", "e");
-        writeStrings(pail, "b/c/ddd", "1", "2", "3");
-        writeStrings(pail, "b/c/eee", "aaa", "bbb", "ccc", "ddd", "eee", "fff");
-        writeStrings(pail, "f", "z");
-        writeStrings(pail, "g", "zz");
-        writeStrings(pail, "h", "zzz");
-        long target = local.getContentSummary(pail.toStoredPath("f")).getLength() +
-                local.getContentSummary(pail.toStoredPath("g")).getLength() + 1;
-        pail.consolidate(target);
-        assertTrue(pail.getUserFileNames().size() < 6 && pail.getUserFileNames().size() > 1);
-        Set<String> results = new HashSet<String>(readWithIt(pail));
-        Set<String> expected = new HashSet<String>(Arrays.asList("a", "b", "c", "d", "e",
-                "1", "2", "3","aaa", "bbb", "ccc", "ddd", "eee", "fff","z", "zz", "zzz"));
-        assertEquals(expected, results);
-    }
-
-    public void testConsolidateStructured() throws Exception {
-        String path = getTmpPath(fs, "pail");
-        Pail<String> pail = Pail.create(fs, path, PailFormatFactory.getDefaultCopy().setStructure(new TestStructure()));
-        Pail<String>.TypedRecordOutputStream os = pail.openWrite();
-        os.writeObject("a1");
-        os.writeObject("b1");
-        os.writeObject("c1");
-        os.writeObject("a2");
-        os.writeObject("za1");
-        os.writeObject("za2");
-        os.writeObject("zb1");
-        os.close();
-        os = pail.openWrite();
-        os.writeObject("a7");
-        os.writeObject("a8");
-        os.writeObject("za3");
-        os.close();
-        pail.consolidate();
-        assertPailContents(pail, "a1", "b1", "c1", "a2", "za1", "za2", "zb1", "a7", "a8", "za3");
-        assertPailContents(pail.getSubPail("a"), "a1", "a2", "a7", "a8");
-        assertPailContents(pail.getSubPail("z"), "za1", "za2", "zb1", "za3");
-        assertPailContents(pail.getSubPail("z/a"), "za1", "za2", "za3");
     }
 
     protected static interface AppendOperation {

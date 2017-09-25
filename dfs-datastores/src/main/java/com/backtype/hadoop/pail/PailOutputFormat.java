@@ -97,12 +97,12 @@ public class  PailOutputFormat extends FileOutputFormat<Text, BytesWritable> {
         }
 
         /**
-         * Log information every 10000th record written.
+         * Log information every 100000th record written.
          * Log the bytes written to the stream and the actual bytes written on disk if available.
          */
         protected void logProgress() {
             writtenRecords++;
-            if(writtenRecords%10000 == 0) {
+            if(writtenRecords%100000 == 0) {
                 for(OpenAttributeFile oaf: _outputters.values()) {
 
                     try {

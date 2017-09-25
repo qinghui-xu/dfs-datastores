@@ -1,11 +1,13 @@
-package com.backtype.hadoop;
+package com.backtype.hadoop.pail;
 
+import com.backtype.hadoop.PathLister;
 import com.backtype.hadoop.formats.RecordInputStream;
 import com.backtype.hadoop.formats.RecordOutputStream;
 import com.backtype.hadoop.formats.RecordStreamFactory;
 import com.backtype.support.SubsetSum;
 import com.backtype.support.SubsetSum.Value;
 import com.backtype.support.Utils;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
@@ -16,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
@@ -23,51 +26,33 @@ import java.util.*;
 
 public class Consolidator {
     public static final long DEFAULT_CONSOLIDATION_SIZE = 1024*1024*127; //127 MB
-    private static final String ARGS = "consolidator_args";
+    public static final String CONSOLIDATION_PAIL_PATH_KEY = "consolidation.pail.path";
+    public static final String CONSOLIDATION_PLAN_METADATA_NAME = "consolidation_plan";
+    public static final String ARGS = "consolidator_args";
+    public static final String CONSOLIDATION_SUCCESS = "consolidation_success";
+
+    private static final Logger LOG = LoggerFactory.getLogger(Consolidator.class);
 
     private static Thread shutdownHook;
     private static RunningJob job = null;
 
     public static class ConsolidatorArgs implements Serializable {
+        public String instanceRoot;
         public String fsUri;
         public RecordStreamFactory streams;
         public PathLister pathLister;
-        public List<String> dirs;
         public long targetSizeBytes;
         public String extension;
 
-
-        public ConsolidatorArgs(String fsUri, RecordStreamFactory streams, PathLister pathLister,
-            List<String> dirs, long targetSizeBytes, String extension) {
+        public ConsolidatorArgs(String fsUri, RecordStreamFactory streams, PathLister pathLister, long targetSizeBytes,
+                                String instanceRoot, String extension) {
             this.fsUri = fsUri;
             this.streams = streams;
             this.pathLister = pathLister;
-            this.dirs = dirs;
             this.targetSizeBytes = targetSizeBytes;
             this.extension = extension;
+            this.instanceRoot = instanceRoot;
         }
-    }
-
-    public static void consolidate(FileSystem fs, String targetDir, RecordStreamFactory streams,
-        PathLister pathLister, long targetSizeBytes) throws IOException {
-        consolidate(fs, targetDir, streams, pathLister, targetSizeBytes, "");
-    }
-
-    public static void consolidate(FileSystem fs, String targetDir, RecordStreamFactory streams,
-        PathLister pathLister, String extension) throws IOException {
-        consolidate(fs, targetDir, streams, pathLister, DEFAULT_CONSOLIDATION_SIZE, extension);
-    }
-
-    public static void consolidate(FileSystem fs, String targetDir, RecordStreamFactory streams,
-        PathLister pathLister) throws IOException {
-        consolidate(fs, targetDir, streams, pathLister, DEFAULT_CONSOLIDATION_SIZE, "");
-    }
-
-    public static void consolidate(FileSystem fs, String targetDir, RecordStreamFactory streams,
-        PathLister pathLister, long targetSizeBytes, String extension) throws IOException {
-        List<String> dirs = new ArrayList<String>();
-        dirs.add(targetDir);
-        consolidate(fs, streams, pathLister, dirs, targetSizeBytes, extension);
     }
 
     private static String getDirsString(List<String> targetDirs) {
@@ -81,17 +66,48 @@ public class Consolidator {
         return ret;
     }
 
-    public static void consolidate(FileSystem fs, RecordStreamFactory streams, PathLister lister, List<String> dirs,
-        long targetSizeBytes, String extension) throws IOException {
+    private static List<String> getPartitionsToConsolidate(Pail thePail, String extension) throws IOException {
+        List<String> toCheck = new ArrayList<String>();
+        toCheck.add("");
+        PailStructure structure = thePail.getSpec().getStructure();
+        List<String> partitionsToConsolidate = new ArrayList<String>();
+        while(toCheck.size()>0) {
+            String dir = toCheck.remove(0);
+            List<String> dirComponents = thePail.componentsFromRoot(dir);
+            if(structure.isValidTarget(dirComponents.toArray(new String[dirComponents.size()]))) {
+                partitionsToConsolidate.add(thePail.toFullPath(dir));
+            } else {
+                for(FileStatus fstat:thePail.listStatus(new Path(thePail.toFullPath(dir)))) {
+                    if(fstat.isDirectory()) {
+                        toCheck.add(fstat.getPath().toString());
+                    } else {
+                        if (fstat.getPath().getName().endsWith(extension)) {
+                            throw new IllegalStateException(fstat.getPath().toString() + " is not a dir and breaks the structure of " + thePail.getInstanceRoot());
+                        }
+                    }
+                }
+            }
+        }
+        return partitionsToConsolidate;
+    }
+
+    public static void consolidate(FileSystem fs, Pail thePail, RecordStreamFactory streams, PathLister lister,
+                                   long targetSizeBytes, String extension) throws IOException {
+
+        // prevent 2 running instances running at the same time
+        // add the ability to recover from failure
+
         JobConf conf = new JobConf(fs.getConf(), Consolidator.class);
         String fsUri = fs.getUri().toString();
-        ConsolidatorArgs args = new ConsolidatorArgs(fsUri, streams, lister, dirs, targetSizeBytes, extension);
+        ConsolidatorArgs args = new ConsolidatorArgs(fsUri, streams, lister, targetSizeBytes, thePail.getInstanceRoot(), extension);
         Utils.setObject(conf, ARGS, args);
 
-        conf.setJobName("Consolidator: " + getDirsString(dirs));
+        conf.setJobName("Consolidator: " + thePail.getInstanceRoot());
 
         conf.setInputFormat(ConsolidatorInputFormat.class);
         conf.setOutputFormat(NullOutputFormat.class);
+        conf.setOutputCommitter(ConsolidatorOutputCommitter.class);
+        conf.set(CONSOLIDATION_PAIL_PATH_KEY, thePail.getInstanceRoot());
         conf.setMapperClass(ConsolidatorMapper.class);
 
         conf.setSpeculativeExecution(false);
@@ -100,6 +116,10 @@ public class Consolidator {
 
         conf.setOutputKeyClass(NullWritable.class);
         conf.setOutputValueClass(NullWritable.class);
+
+        conf.unset("mapred.max.map.failures.percent ");
+        conf.unset("mapreduce.map.failures.maxpercent");
+        conf.unset("mapreduce.map.maxattempts");
 
         try {
             registerShutdownHook();
@@ -147,7 +167,6 @@ public class Consolidator {
 
         FileSystem fs;
         ConsolidatorArgs args;
-        Path rootTmp = new Path("/tmp/consolidator");
 
         public void map(ArrayWritable sourcesArr, Text target, OutputCollector<NullWritable, NullWritable> oc, Reporter rprtr) throws IOException {
 
@@ -160,10 +179,10 @@ public class Consolidator {
             //must have failed after succeeding to create file but before task finished - this is valid
             //because path is selected with a UUID
             if(!fs.exists(finalFile)) {
-                Path tmpFile = new Path(rootTmp + UUID.randomUUID().toString());
+                Path tmpFile = new Path(finalFile.getParent(), "_"+UUID.randomUUID().toString());
                 fs.mkdirs(tmpFile.getParent());
 
-                String status = "Consolidating " + sources.size() + " files into " + tmpFile.toString();
+                String status = "Consolidating 0/" + sources.size() + " files into " + tmpFile.toString();
                 LOG.info(status);
                 rprtr.setStatus(status);
 
@@ -171,9 +190,12 @@ public class Consolidator {
                 fs.mkdirs(finalFile.getParent());
 
                 RecordOutputStream os = fact.getOutputStream(fs, tmpFile);
-                for(Path i: sources) {
-                    LOG.info("Opening " + i.toString() + " for consolidation");
-                    RecordInputStream is = fact.getInputStream(fs, i);
+                for (int i = 0; i < sources.size(); i++) {
+                    Path p = sources.get(i);
+                    LOG.info("Opening " + p.toString() + " for consolidation");
+                    status = "Consolidating "+(i+1)+"/" + sources.size() + " files into " + tmpFile.toString();
+                    rprtr.setStatus(status);
+                    RecordInputStream is = fact.getInputStream(fs, p);
                     byte[] record;
                     while((record = is.readRawRecord()) != null) {
                         os.writeRaw(record);
@@ -196,7 +218,11 @@ public class Consolidator {
             rprtr.setStatus(status);
 
             for(Path p: sources) {
-                fs.delete(p, false);
+                try {
+                    fs.delete(p, false);
+                } catch (FileNotFoundException e) {
+                    LOG.info("file " + p + " already deleted");
+                }
                 rprtr.progress();
             }
 
@@ -205,7 +231,6 @@ public class Consolidator {
         @Override
         public void configure(JobConf conf) {
             args = (ConsolidatorArgs) Utils.getObject(conf, ARGS);
-            rootTmp = new Path(conf.get("pail.consolidate.tmpdir", "/tmp/consolidator"));
             try {
                 fs = Utils.getFS(args.fsUri, conf);
             } catch(IOException e) {
@@ -224,6 +249,26 @@ public class Consolidator {
 
         public ConsolidatorSplit(String[] sources, String target) {
             this.sources = sources;
+            this.target = target;
+        }
+
+        public ConsolidatorSplit(String[] sources, String target, Long length, String[] locations) {
+            this(sources, target);
+        }
+
+        public String[] getSources() {
+            return sources;
+        }
+
+        public String getTarget() {
+            return target;
+        }
+
+        public void setSources(String[] sources) {
+            this.sources = sources;
+        }
+
+        public void setTarget(String target) {
             this.target = target;
         }
 
@@ -292,8 +337,42 @@ public class Consolidator {
 
     }
 
+    public static class ConsolidatorOutputCommitter extends OutputCommitter {
+
+        public void setupJob(JobContext jobContext) throws IOException {
+
+        }
+
+        @Override
+        public void commitJob(JobContext jobContext) throws IOException {
+            // job is successful, remove consolidation plan.
+            ConsolidatorArgs args = (ConsolidatorArgs) Utils.getObject(jobContext.getJobConf(), ARGS);
+            Pail pail = new Pail(args.instanceRoot, jobContext.getConfiguration());
+            pail.deleteMetadata(CONSOLIDATION_PLAN_METADATA_NAME);
+            pail.writeMetadata(CONSOLIDATION_SUCCESS, "");
+        }
+
+        public void setupTask(TaskAttemptContext taskContext) throws IOException {
+            // do nothing
+        }
+
+        public boolean needsTaskCommit(TaskAttemptContext taskContext) throws IOException {
+            return false;
+        }
+
+        public void commitTask(TaskAttemptContext taskContext) throws IOException {
+            // do nothing
+        }
+
+        public void abortTask(TaskAttemptContext taskContext) throws IOException {
+            // do nothing
+        }
+    }
+
 
     public static class ConsolidatorInputFormat implements InputFormat<ArrayWritable, Text> {
+        private static final String TARGET_SOURCE_SEP = "::";
+        private static final String SOURCE_SEP = ",";
 
         private static class PathSizePair implements Value {
             public Path path;
@@ -328,10 +407,10 @@ public class Consolidator {
             return ret;
         }
 
-        private List<InputSplit> createSplits(FileSystem fs, List<Path> files,
-            String target, long targetSize, String extension) throws IOException {
+        private List<ConsolidatorSplit> createSplits(FileSystem fs, List<Path> files,
+                String target, long targetSize, String extension) throws IOException {
             List<PathSizePair> working = getFileSizePairs(fs, files);
-            List<InputSplit> ret = new ArrayList<InputSplit>();
+            List<ConsolidatorSplit> ret = new ArrayList<ConsolidatorSplit>();
             List<List<PathSizePair>> splits = SubsetSum.split(working, targetSize);
             for(List<PathSizePair> c: splits) {
                 if(c.size()>1) {
@@ -351,17 +430,52 @@ public class Consolidator {
             return ret;
         }
 
+        private ConsolidatorSplit[] readSplitFromPreviousPlan(Pail thePail, String plan) throws IOException {
+            List<ConsolidatorSplit> splits = new ArrayList<ConsolidatorSplit>();
+            for (String mapping : plan.split("\n")) {
+                String[] parsed = mapping.split(TARGET_SOURCE_SEP);
+                String target = parsed[0];
+                String[] sources = parsed[1].split(SOURCE_SEP);
+                splits.add(new ConsolidatorSplit(sources, target));
+            }
+            return splits.toArray(new ConsolidatorSplit[splits.size()]);
+        }
+
+        private void writePlanToPail(List<ConsolidatorSplit> splits, Pail thePail) throws IOException {
+            StringBuilder consolidatePlan = new StringBuilder();
+
+            for(ConsolidatorSplit split : splits) {
+                consolidatePlan.append(split.target).append(TARGET_SOURCE_SEP);
+                consolidatePlan.append(split.sources[0]);
+                for (int i = 1; i < split.sources.length; i++) {
+                    consolidatePlan.append(SOURCE_SEP).append(split.sources[i]);
+                }
+                consolidatePlan.append("\n");
+            }
+
+            thePail.writeMetadata(CONSOLIDATION_PLAN_METADATA_NAME, consolidatePlan.toString());
+        }
+
         public InputSplit[] getSplits(JobConf conf, int ignored) throws IOException {
             ConsolidatorArgs args = (ConsolidatorArgs) Utils.getObject(conf, ARGS);
             PathLister lister = args.pathLister;
-            List<String> dirs = args.dirs;
-            List<InputSplit> ret = new ArrayList<InputSplit>();
-            for(String dir: dirs) {
-                FileSystem fs = Utils.getFS(dir, conf);
-                ret.addAll(createSplits(fs, lister.getFiles(fs,dir),
-                    dir, args.targetSizeBytes, args.extension));
+            Pail thePail = new Pail(args.instanceRoot, conf);
+
+            String oldPlan = thePail.getMetadata(CONSOLIDATION_PLAN_METADATA_NAME);
+            if(oldPlan != null) {
+                return readSplitFromPreviousPlan(thePail, oldPlan);
+            } else {
+                List<ConsolidatorSplit> ret = new ArrayList<ConsolidatorSplit>();
+                List<String> dirs = getPartitionsToConsolidate(thePail, args.extension);
+                for (String dir : dirs) {
+                    FileSystem fs = Utils.getFS(dir, conf);
+                    List<ConsolidatorSplit> splits = createSplits(fs, lister.getFiles(fs, dir),
+                            dir, args.targetSizeBytes, args.extension);
+                    ret.addAll(splits);
+                }
+                writePlanToPail(ret, thePail);
+                return ret.toArray(new InputSplit[ret.size()]);
             }
-            return ret.toArray(new InputSplit[ret.size()]);
         }
 
         public RecordReader<ArrayWritable, Text> getRecordReader(InputSplit is, JobConf jc, Reporter rprtr) throws IOException {
