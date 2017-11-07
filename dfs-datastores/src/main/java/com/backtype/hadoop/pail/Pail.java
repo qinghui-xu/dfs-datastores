@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.backtype.hadoop.Consolidator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
@@ -594,6 +595,31 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
        List<String> full = Utils.componentize(fullpath);
        List<String> root = Utils.componentize(getRoot());
        return Utils.stripRoot(root, full);
+    }
+
+    public List<String> getPartitionsToConsolidate(String extension) throws IOException {
+        List<String> toCheck = new ArrayList<String>();
+        toCheck.add("");
+        PailStructure structure = getSpec().getStructure();
+        List<String> partitionsToConsolidate = new ArrayList<String>();
+        while(toCheck.size()>0) {
+            String dir = toCheck.remove(0);
+            List<String> dirComponents = componentsFromRoot(dir);
+            if(structure.isValidTarget(dirComponents.toArray(new String[dirComponents.size()]))) {
+                partitionsToConsolidate.add(toFullPath(dir));
+            } else {
+                for(FileStatus fstat:listStatus(new Path(toFullPath(dir)))) {
+                    if(fstat.isDirectory()) {
+                        toCheck.add(fstat.getPath().toString());
+                    } else {
+                        if (fstat.getPath().getName().endsWith(extension)) {
+                            throw new IllegalStateException(fstat.getPath().toString() + " is not a dir and breaks the structure of " + getInstanceRoot());
+                        }
+                    }
+                }
+            }
+        }
+        return partitionsToConsolidate;
     }
 
     protected void checkValidStructure(String userfilename) {

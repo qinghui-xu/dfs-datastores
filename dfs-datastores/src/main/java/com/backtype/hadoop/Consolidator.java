@@ -1,9 +1,10 @@
-package com.backtype.hadoop.pail;
+package com.backtype.hadoop;
 
-import com.backtype.hadoop.PathLister;
 import com.backtype.hadoop.formats.RecordInputStream;
 import com.backtype.hadoop.formats.RecordOutputStream;
 import com.backtype.hadoop.formats.RecordStreamFactory;
+import com.backtype.hadoop.pail.Pail;
+import com.backtype.hadoop.pail.PailStructure;
 import com.backtype.support.SubsetSum;
 import com.backtype.support.SubsetSum.Value;
 import com.backtype.support.Utils;
@@ -64,31 +65,6 @@ public class Consolidator {
             ret+="...";
         }
         return ret;
-    }
-
-    private static List<String> getPartitionsToConsolidate(Pail thePail, String extension) throws IOException {
-        List<String> toCheck = new ArrayList<String>();
-        toCheck.add("");
-        PailStructure structure = thePail.getSpec().getStructure();
-        List<String> partitionsToConsolidate = new ArrayList<String>();
-        while(toCheck.size()>0) {
-            String dir = toCheck.remove(0);
-            List<String> dirComponents = thePail.componentsFromRoot(dir);
-            if(structure.isValidTarget(dirComponents.toArray(new String[dirComponents.size()]))) {
-                partitionsToConsolidate.add(thePail.toFullPath(dir));
-            } else {
-                for(FileStatus fstat:thePail.listStatus(new Path(thePail.toFullPath(dir)))) {
-                    if(fstat.isDirectory()) {
-                        toCheck.add(fstat.getPath().toString());
-                    } else {
-                        if (fstat.getPath().getName().endsWith(extension)) {
-                            throw new IllegalStateException(fstat.getPath().toString() + " is not a dir and breaks the structure of " + thePail.getInstanceRoot());
-                        }
-                    }
-                }
-            }
-        }
-        return partitionsToConsolidate;
     }
 
     public static void consolidate(FileSystem fs, Pail thePail, RecordStreamFactory streams, PathLister lister,
@@ -466,7 +442,7 @@ public class Consolidator {
                 return readSplitFromPreviousPlan(thePail, oldPlan);
             } else {
                 List<ConsolidatorSplit> ret = new ArrayList<ConsolidatorSplit>();
-                List<String> dirs = getPartitionsToConsolidate(thePail, args.extension);
+                List<String> dirs = thePail.getPartitionsToConsolidate(args.extension);
                 for (String dir : dirs) {
                     FileSystem fs = Utils.getFS(dir, conf);
                     List<ConsolidatorSplit> splits = createSplits(fs, lister.getFiles(fs, dir),

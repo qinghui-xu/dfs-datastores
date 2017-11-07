@@ -1,5 +1,9 @@
 package com.backtype.hadoop.pail;
 
+import com.backtype.hadoop.Consolidator;
+import com.backtype.hadoop.pail.Pail;
+import com.backtype.hadoop.pail.PailFormatFactory;
+import com.backtype.hadoop.pail.TestStructure;
 import com.backtype.support.FSTestCase;
 import com.backtype.support.Utils;
 import org.apache.hadoop.fs.Path;
