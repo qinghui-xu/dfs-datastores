@@ -1,0 +1,8 @@
+#!/bin/bash
+
+version=$(cat VERSION)
+new_version=$(echo ${version} | awk -F- '{OFS="-";$NF=$NF+1; print $0}')
+files=$(grep -r -n ${version} | awk -F: '{print $1}')
+for f in $files; do
+		sed -i "s/${version}/${new_version}/g" $f
+done

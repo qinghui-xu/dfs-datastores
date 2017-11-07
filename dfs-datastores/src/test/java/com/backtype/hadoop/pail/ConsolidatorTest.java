@@ -117,7 +117,6 @@ public class ConsolidatorTest extends FSTestCase {
         pail.consolidate();
 
         assertFalse(fs.exists(new Path(path, Consolidator.CONSOLIDATION_PLAN_METADATA_NAME +Pail.META_EXTENSION)));
-        assertTrue(pail.getMetadata(Consolidator.CONSOLIDATION_SUCCESS) != null);
 
         assertPailContents(pail, "a1", "b1", "c1", "a2", "za1", "za2", "zb1", "a7", "a8", "za3");
         assertPailContents(pail.getSubPail("a"), "a1", "a2", "a7", "a8");

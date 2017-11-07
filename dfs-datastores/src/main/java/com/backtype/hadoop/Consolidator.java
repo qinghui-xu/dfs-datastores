@@ -30,7 +30,6 @@ public class Consolidator {
     public static final String CONSOLIDATION_PAIL_PATH_KEY = "consolidation.pail.path";
     public static final String CONSOLIDATION_PLAN_METADATA_NAME = "consolidation_plan";
     public static final String ARGS = "consolidator_args";
-    public static final String CONSOLIDATION_SUCCESS = "consolidation_success";
 
     private static final Logger LOG = LoggerFactory.getLogger(Consolidator.class);
 
@@ -325,7 +324,6 @@ public class Consolidator {
             ConsolidatorArgs args = (ConsolidatorArgs) Utils.getObject(jobContext.getJobConf(), ARGS);
             Pail pail = new Pail(args.instanceRoot, jobContext.getConfiguration());
             pail.deleteMetadata(CONSOLIDATION_PLAN_METADATA_NAME);
-            pail.writeMetadata(CONSOLIDATION_SUCCESS, "");
         }
 
         public void setupTask(TaskAttemptContext taskContext) throws IOException {
