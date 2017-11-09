@@ -560,7 +560,9 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     @Override
     protected boolean overwrite(Path source, Path dest) throws IOException {
         Configuration conf = new Configuration(_fs.getConf());
-        conf.set("fs.AbstractFileSystem.file.impl", LocalFsWithoutBug.class.getName());
+        if ("file".equals(_fs.getScheme())) {
+            conf.set("fs.AbstractFileSystem.file.impl", LocalFsWithoutBug.class.getName());
+        }
         FileContext fileContext = FileContext.getFileContext(conf);
         fileContext.rename(source, dest, Options.Rename.OVERWRITE);
         return true;
