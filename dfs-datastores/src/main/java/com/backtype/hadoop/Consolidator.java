@@ -405,6 +405,9 @@ public class Consolidator {
         }
 
         private ConsolidatorSplit[] readSplitFromPreviousPlan(Pail thePail, String plan) throws IOException {
+            if (plan.isEmpty()) {
+                return new ConsolidatorSplit[0];
+            }
             List<ConsolidatorSplit> splits = new ArrayList<ConsolidatorSplit>();
             for (String mapping : plan.split("\n")) {
                 String[] parsed = mapping.split(TARGET_SOURCE_SEP);
@@ -433,7 +436,7 @@ public class Consolidator {
         public InputSplit[] getSplits(JobConf conf, int ignored) throws IOException {
             ConsolidatorArgs args = (ConsolidatorArgs) Utils.getObject(conf, ARGS);
             PathLister lister = args.pathLister;
-            Pail thePail = new Pail(args.instanceRoot, conf);
+            Pail<?> thePail = new Pail<>(args.instanceRoot, conf);
 
             String oldPlan = thePail.getMetadata(CONSOLIDATION_PLAN_METADATA_NAME);
             if(oldPlan != null) {
