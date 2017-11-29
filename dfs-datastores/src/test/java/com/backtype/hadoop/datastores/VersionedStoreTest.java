@@ -1,7 +1,7 @@
 package com.backtype.hadoop.datastores;
 
 import com.backtype.support.FSTestCase;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 

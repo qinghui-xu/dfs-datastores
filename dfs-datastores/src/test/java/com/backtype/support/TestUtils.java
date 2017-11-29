@@ -5,7 +5,7 @@ import com.backtype.hadoop.formats.RecordOutputStream;
 import com.backtype.hadoop.pail.Pail;
 import com.backtype.hadoop.pail.Pail.TypedRecordOutputStream;
 import com.google.common.collect.TreeMultiset;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -65,17 +65,18 @@ public class TestUtils {
         os.close();
     }
 
-    public static void emitObjectsToPail(Pail pail, Object... records) throws IOException {
-        TypedRecordOutputStream os = pail.openWrite();
-        for(Object r: records) {
+    @SafeVarargs
+    public static <T> void emitObjectsToPail(Pail<T> pail, T... records) throws IOException {
+        Pail<T>.TypedRecordOutputStream os = pail.openWrite();
+        for(T r: records) {
             os.writeObject(r);
         }
         os.close();
     }
 
-    public static void emitObjectsToPail(Pail pail, List records) throws IOException {
-        TypedRecordOutputStream os = pail.openWrite();
-        for(Object r: records) {
+    public static <T> void emitObjectsToPail(Pail<T> pail, List<T> records) throws IOException {
+        Pail<T>.TypedRecordOutputStream os = pail.openWrite();
+        for(T r: records) {
             os.writeObject(r);
         }
         os.close();
@@ -96,43 +97,37 @@ public class TestUtils {
         return ret;
     }
 
-    public static <T> void assertPailContents(Pail<T> pail, T... objects) {
-        TreeMultiset contains = getPailContents(pail);
-        TreeMultiset other = TreeMultiset.create();
-        for(T obj: objects) {
-            other.add(obj);
-        }
+    @SafeVarargs
+    public static <T extends Comparable> void assertPailContents(Pail<T> pail, T... objects) {
+        TreeMultiset<T> contains = getPailContents(pail);
+        TreeMultiset<T> other = TreeMultiset.create();
+        other.addAll(Arrays.asList(objects));
         Assert.assertEquals(failureString(other, contains), other, contains);
     }
 
-    public static String failureString(Iterable expected, Iterable got) {
-        String ret = "\n\nExpected:\n";
-        for(Object o: expected) {
-            ret = ret + o.toString() + "\n\n";
+    public static<T> String failureString(Iterable<T> expected, Iterable<T> got) {
+        StringBuilder ret = new StringBuilder("\n\nExpected:\n");
+        for(T o: expected) {
+            ret.append(o.toString()).append("\n\n");
         }
-        ret+="\nGot\n";
-        for(Object o: got) {
-            ret = ret + o.toString() + "\n\n";
+        ret.append("\nGot\n");
+        for(T o: got) {
+            ret.append(o.toString()).append("\n\n");
         }
-        ret+="\n\n";
-        return ret;
+        ret.append("\n\n");
+        return ret.toString();
     }
 
-    public static void assertPailContents(Pail pail, List objects) {
-        TreeMultiset contains = getPailContents(pail);
-        TreeMultiset other = TreeMultiset.create();
-        for(Object obj: objects) {
-            other.add(obj);
-        }
-        for(Object o: contains) {
-
-        }
+    public static <T extends Comparable> void assertPailContents(Pail<T> pail, List<T> objects) {
+        TreeMultiset<T> contains = getPailContents(pail);
+        TreeMultiset<T> other = TreeMultiset.create();
+        other.addAll(objects);
         Assert.assertEquals(failureString(other, contains), other, contains);
     }
 
 
-    public static <T> TreeMultiset<T> getPailContents(Pail<T> pail) {
-        TreeMultiset contains = TreeMultiset.create();
+    public static <T extends Comparable> TreeMultiset<T> getPailContents(Pail<T> pail) {
+        TreeMultiset<T> contains = TreeMultiset.create();
         for(T obj: pail) {
             contains.add(obj);
         }

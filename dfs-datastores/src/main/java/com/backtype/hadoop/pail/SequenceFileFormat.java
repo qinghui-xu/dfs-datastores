@@ -194,7 +194,7 @@ public class SequenceFileFormat implements PailFormat {
             FileSystem fs = _currPail.getFileSystem();
             FileStatus[] ret = new FileStatus[paths.size()];
             for(int i=0; i<paths.size(); i++) {
-                ret[i] = fs.getFileStatus(paths.get(i).makeQualified(fs));
+                ret[i] = fs.getFileStatus(paths.get(i).makeQualified(fs.getUri(), fs.getWorkingDirectory()));
             }
             return ret;
         }

@@ -54,7 +54,7 @@ public class NullTap extends Tap {
     @Override protected void collect(TupleEntry tupleEntry) throws IOException { }
   }
 
-
+  @SuppressWarnings("unchecked")
   public NullTap() {
     super(new NullScheme());
   }

@@ -167,7 +167,7 @@ public class VersionedStore {
                         try {
                             if (p.getName().endsWith(FINISHED_VERSION_SUFFIX)) {
                                 ret.add(validateAndGetVersion(p.toString()));
-                            } else if (status != null && status.isDir() && getFileSystem().exists(new Path(p, HADOOP_SUCCESS_FLAG))) {
+                            } else if (status != null && status.isDirectory() && getFileSystem().exists(new Path(p, HADOOP_SUCCESS_FLAG))) {
                                 // FORCE the _SUCCESS flag into the versioned store directory.
                                 ret.add(validateAndGetVersion(p.toString() + FINISHED_VERSION_SUFFIX));
                             }
@@ -198,7 +198,7 @@ public class VersionedStore {
     }
 
     private Path normalizePath(String p) {
-        return new Path(p).makeQualified(fs);
+        return new Path(p).makeQualified(fs.getUri(), fs.getWorkingDirectory());
     }
 
     private long validateAndGetVersion(String path) {
@@ -213,7 +213,7 @@ public class VersionedStore {
         Path versionPath = new Path(parent, v.toString());
         try {
             FileStatus status = getFileSystem().getFileStatus(versionPath);
-            if (status == null || !status.isDir()) throw new RuntimeException(versionPath + " is not a valid version subfolder");
+            if (status == null || !status.isDirectory()) throw new RuntimeException(versionPath + " is not a valid version subfolder");
         } catch (IOException e) {
             throw new RuntimeException("could not stat path: " + versionPath);
         }

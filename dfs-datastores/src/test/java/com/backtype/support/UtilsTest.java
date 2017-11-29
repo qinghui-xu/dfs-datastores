@@ -11,8 +11,9 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.junit.Assert;
+
 import static com.backtype.support.TestUtils.*;
-import junit.framework.*;
 
 public class UtilsTest extends TestCase {
     public void testGetBytes() {

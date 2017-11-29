@@ -29,6 +29,7 @@ public class KeyValueByteScheme extends WritableSequenceFile {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public boolean source(FlowProcess<JobConf> flowProcess,
       SourceCall<Object[], RecordReader> sourceCall) throws IOException {
     BytesWritable key = (BytesWritable) sourceCall.getContext()[0];
@@ -47,6 +48,7 @@ public class KeyValueByteScheme extends WritableSequenceFile {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Void, OutputCollector> sinkCall)
       throws IOException {
     TupleEntry tupleEntry = sinkCall.getOutgoingEntry();

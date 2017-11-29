@@ -161,11 +161,11 @@ public class TimeSliceStore<T> {
         return null;
     }
 
-    public TypedRecordOutputStream openWrite(Slice slice) throws IOException {
+    public Pail<T>.TypedRecordOutputStream openWrite(Slice slice) throws IOException {
         return openWrite(slice.weekStart, slice.sliceStart);
     }
 
-    public TypedRecordOutputStream openWrite(int weekStart, int sliceStart) throws IOException {
+    public Pail<T>.TypedRecordOutputStream openWrite(int weekStart, int sliceStart) throws IOException {
         Integer maxSlice = maxSliceStartSecs();
         if(maxSlice!=null && sliceStart <= maxSlice) {
             throw new IllegalArgumentException("Cannot write to  " + weekStart + "/" + sliceStart + ". A bigger slice already exists.");
@@ -236,7 +236,7 @@ public class TimeSliceStore<T> {
         finishSlice((int) weekStart, (int) sliceStart);
     }
 
-    public void copyAppend(TimeSliceStore other) throws IOException {
+    public void copyAppend(TimeSliceStore<T> other) throws IOException {
         doAppend(other, new AppendFunction() {
             public void append(Pail dest, Pail source, CopyArgs args) throws IOException {
                 dest.copyAppend(source, args);
@@ -244,7 +244,7 @@ public class TimeSliceStore<T> {
         });
     }
 
-    public void moveAppend(TimeSliceStore other) throws IOException {
+    public void moveAppend(TimeSliceStore<T> other) throws IOException {
         doAppend(other, new AppendFunction() {
             public void append(Pail dest, Pail source, CopyArgs args) throws IOException {
                 dest.moveAppend(source, args);
@@ -252,7 +252,7 @@ public class TimeSliceStore<T> {
         });
     }
 
-    public void absorb(TimeSliceStore other) throws IOException {
+    public void absorb(TimeSliceStore<T> other) throws IOException {
         doAppend(other, new AppendFunction() {
             public void append(Pail dest, Pail source, CopyArgs args) throws IOException {
                 dest.absorb(source, args);

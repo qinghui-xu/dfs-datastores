@@ -6,21 +6,24 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 
 import java.io.IOException;
 
 public class SequenceFileOutputStream implements RecordOutputStream {
 
-    private SequenceFile.Writer _writer;
+    private Writer _writer;
     private BytesWritable writable = new BytesWritable();
 
     public SequenceFileOutputStream(FileSystem fs, Path path) throws IOException {
-        _writer = SequenceFile.createWriter(fs, fs.getConf(), path, BytesWritable.class, NullWritable.class, CompressionType.NONE);
+        _writer = SequenceFile.createWriter(fs.getConf(), Writer.file(path), Writer.keyClass(BytesWritable.class),
+                Writer.valueClass(NullWritable.class), Writer.compression(CompressionType.NONE));
     }
 
     public SequenceFileOutputStream(FileSystem fs, Path path, CompressionType type, CompressionCodec codec) throws IOException {
-        _writer = SequenceFile.createWriter(fs, fs.getConf(), path, BytesWritable.class, NullWritable.class, type, codec);
+        _writer = SequenceFile.createWriter(fs.getConf(), Writer.file(path), Writer.keyClass(BytesWritable.class),
+                Writer.valueClass(NullWritable.class), Writer.compression(type, codec));
     }
 
     public void writeRaw(byte[] record) throws IOException {

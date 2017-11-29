@@ -41,7 +41,7 @@ public class PailSpec implements Writable, Serializable {
 
     public PailSpec(String name, Map<String, Object> args, PailStructure structure) {
         this.name = name;
-        this.args = args == null ? null : new HashMap(args);
+        this.args = args == null ? null : new HashMap<>(args);
         this.structure = structure;
     }
 
@@ -99,6 +99,7 @@ public class PailSpec implements Writable, Serializable {
         return ret;
     }
 
+    @SuppressWarnings("unchecked")
     public static PailSpec parseFromStream(InputStream is) {
         StringWriter writer = new StringWriter();
         try {
@@ -108,7 +109,7 @@ public class PailSpec implements Writable, Serializable {
         }
         String yaml = writer.toString();
         try {
-            Map format = (Map) YAML.load(yaml);
+            Map<String, Object> format = (Map<String, Object>) YAML.load(yaml);
             return parseFromMap(format);
         } catch (Exception e) {
             throw new RuntimeException("Pail spec is malformatted: " + yaml, e);
@@ -126,6 +127,7 @@ public class PailSpec implements Writable, Serializable {
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected static PailSpec parseFromMap(Map<String, Object> format) {
         String name = (String) format.get("format");
         Map<String, Object> args = (Map<String, Object>) format.get("args");
@@ -158,6 +160,7 @@ public class PailSpec implements Writable, Serializable {
         WritableUtils.writeString(d, ser);
     }
 
+    @SuppressWarnings("unchecked")
     public void readFields(DataInput di) throws IOException {
         PailSpec spec = parseFromMap((Map<String, Object>)YAML.load(WritableUtils.readString(di)));
         this.name = spec.name;

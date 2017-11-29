@@ -34,17 +34,17 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     public static final String META = "pail.meta";
 
     public class TypedRecordOutputStream implements RecordOutputStream {
-        private HashMap<String, RecordOutputStream> _workers = new HashMap<String, RecordOutputStream>();
+        private HashMap<String, RecordOutputStream> _workers = new HashMap<>();
         private String _userfilename;
         private boolean _overwrite;
 
-        public TypedRecordOutputStream(String userfilename, boolean overwrite) {
+        public TypedRecordOutputStream(String userfilename, boolean overwrite, PailStructure<T> structure) {
             _userfilename = userfilename;
             _overwrite = overwrite;
         }
 
-        public <T> void writeObject(T obj) throws IOException {
-            PailStructure<T> structure = ((PailStructure<T>) _structure);
+        public void writeObject(T obj) throws IOException {
+            PailStructure<T> structure = _structure;
             List<String> rootAttrs = structure.getTarget(obj);
             List<String> attrs = makeRelative(rootAttrs);
             String targetDir = Utils.join(attrs, "/");
@@ -63,7 +63,8 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
             os.writeRaw(structure.serialize(obj));
         }
 
-        public void writeObjects(T... objs) throws IOException {
+        @SafeVarargs
+        public final void writeObjects(T... objs) throws IOException {
             for(T obj: objs) {
                 writeObject(obj);
             }
@@ -247,6 +248,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
         this(Utils.getFS(path, conf), path);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Pail(FileSystem fs, String path) throws IOException {
         super(path);
         _fs = fs;
@@ -264,7 +266,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     }
 
 
-    public TypedRecordOutputStream openWrite() throws IOException {
+    public Pail<T>.TypedRecordOutputStream openWrite() throws IOException {
         return openWrite(UUID.randomUUID().toString(), false);
     }
 
@@ -272,7 +274,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     public TypedRecordOutputStream openWrite(String subFileName, boolean overwrite) throws IOException {
         if(subFileName.contains(META)) throw new IllegalArgumentException("Illegal user file name " + subFileName);
         checkPathValidity(subFileName);
-        return new TypedRecordOutputStream(subFileName, overwrite);
+        return new TypedRecordOutputStream(subFileName, overwrite, _structure);
     }
 
     @Override
@@ -302,7 +304,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
 
     public Pail<T> getSubPail(String relpath) throws IOException {
         mkdirs(new Path(getInstanceRoot(), relpath));
-        return new Pail(_fs, new Path(getInstanceRoot(), relpath).toString());
+        return new Pail<>(_fs, new Path(getInstanceRoot(), relpath).toString());
     }
 
     public PailSpec getSpec() {
@@ -318,8 +320,8 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
     }
 
     public boolean atRoot() {
-        Path instanceRoot = new Path(getInstanceRoot()).makeQualified(_fs);
-        Path root = new Path(getRoot()).makeQualified(_fs);
+        Path instanceRoot = new Path(getInstanceRoot()).makeQualified(_fs.getUri(), _fs.getWorkingDirectory());
+        Path root = new Path(getRoot()).makeQualified(_fs.getUri(), _fs.getWorkingDirectory());
         return root.equals(instanceRoot);
     }
 
@@ -420,7 +422,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
 
     protected String getQualifiedRoot(Pail p) {
         Path path = new Path(p.getInstanceRoot());
-        return path.makeQualified(p._fs).toString();
+        return path.makeQualified(p._fs.getUri(), p._fs.getWorkingDirectory()).toString();
     }
     /**
      * Copy append will copy all the files from p into this pail. Appending maintains the

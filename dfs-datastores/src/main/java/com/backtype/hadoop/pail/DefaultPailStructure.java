@@ -10,6 +10,6 @@ public class DefaultPailStructure extends BinaryPailStructure {
     }
 
     public List<String> getTarget(byte[] object) {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 }

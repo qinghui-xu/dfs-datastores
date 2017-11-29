@@ -36,13 +36,14 @@ public class PailOpsTest extends FSTestCase {
         return returned;
     }
 
+    @SuppressWarnings("unchecked")
     public void testDeleteSnapshot() throws IOException {
         String path = getTmpPath(local, "pail");
         String snap = getTmpPath(fs, "snapshot");
-        Pail pail = Pail.create(local, path, new StringStructure());
+        Pail<String> pail = Pail.create(local, path, new StringStructure());
         writeStrings(pail, "aaa", "a", "b", "c", "d", "e");
         writeStrings(pail, "bbb", "1", "2", "3");
-        Pail snapPail = pail.snapshot(snap);
+        Pail<String> snapPail = pail.snapshot(snap);
         writeStrings(pail, "aaa2", "a1");
         pail.deleteSnapshot(snapPail);
         assertPailContents(pail, "a1");
@@ -51,6 +52,7 @@ public class PailOpsTest extends FSTestCase {
         assertEquals(1, names.size());
     }
 
+    @SuppressWarnings("unchecked")
     public void testClear() throws IOException {
         String path = getTmpPath(fs, "pail");
         Pail<String> pail = Pail.create(fs, path, PailFormatFactory.getDefaultCopy().setStructure(new TestStructure()));
@@ -72,19 +74,20 @@ public class PailOpsTest extends FSTestCase {
         assertPailContents(pail);
     }
 
-    protected static interface AppendOperation {
-        public void append(Pail into, Pail data, int renameMode) throws IOException;
-        public void append(Pail into, Pail data, CopyArgs args) throws IOException;
-        public boolean canAppendDifferentFormats();
+    protected interface AppendOperation {
+        void append(Pail into, Pail data, int renameMode) throws IOException;
+        void append(Pail into, Pail data, CopyArgs args) throws IOException;
+        boolean canAppendDifferentFormats();
     }
 
+    @SuppressWarnings("unchecked")
     private void basicAppendTest(AppendOperation op) throws Exception {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
 
         //test non structured append
-        Pail p1 = Pail.create(fs, path1, new StringStructure());
-        Pail p2 = Pail.create(fs, path2, new StringStructure());
+        Pail<String> p1 = Pail.create(fs, path1, new StringStructure());
+        Pail<String> p2 = Pail.create(fs, path2, new StringStructure());
         emitObjectsToPail(p1, "aaa", "bbb", "ccc", "ddd");
         emitObjectsToPail(p1, "eee", "fff", "ggg");
         emitObjectsToPail(p2, "hhh");
@@ -93,6 +96,7 @@ public class PailOpsTest extends FSTestCase {
         assertPailContents(p1, "aaa", "bbb", "ccc", "ddd", "eee", "fff", "ggg", "hhh", "iii");
     }
 
+    @SuppressWarnings("unchecked")
     private void renameAndStructureAppendTest(AppendOperation op, PailSpec spec1, PailSpec spec2) throws Exception {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
@@ -100,8 +104,8 @@ public class PailOpsTest extends FSTestCase {
         spec1.setStructure(new StringStructure());
         spec2.setStructure(new StringStructure());
         //test non structured append
-        Pail p1 = Pail.create(fs, path1, spec1);
-        Pail p2 = Pail.create(fs, path2, spec2);
+        Pail<String> p1 = Pail.create(fs, path1, spec1);
+        Pail<String> p2 = Pail.create(fs, path2, spec2);
         emitToPail(p1, "file1", "a");
         emitToPail(p1, "1/file1", "b");
         emitToPail(p1, "1/2/file1", "c");
@@ -144,11 +148,12 @@ public class PailOpsTest extends FSTestCase {
 
     }
 
+    @SuppressWarnings("unchecked")
     public void appendTypeCompatibilityTest(AppendOperation op) throws Exception {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
-        Pail p1 = Pail.create(fs, path1);
-        Pail p2 = Pail.create(fs, path2, new StringStructure());
+        Pail<byte[]> p1 = Pail.create(fs, path1);
+        Pail<String> p2 = Pail.create(fs, path2, new StringStructure());
         emitToPail(p1, "file1", "a", "b");
         emitObjectsToPail(p2, "b");
         op.append(p1, p2, RenameMode.RENAME_IF_NECESSARY);
@@ -160,11 +165,12 @@ public class PailOpsTest extends FSTestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void structureProtectionTest(AppendOperation op) throws Exception {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
-        Pail p1 = Pail.create(fs, path1, new TestStructure());
-        Pail p2 = Pail.create(fs, path2, new StringStructure());
+        Pail<String> p1 = Pail.create(fs, path1, new TestStructure());
+        Pail<String> p2 = Pail.create(fs, path2, new StringStructure());
         emitObjectsToPail(p1, "a1", "a2", "b1", "c1", "z11", "z12", "z21");
         emitObjectsToPail(p2, "c1", "d1", "e1");
         try {
@@ -206,13 +212,14 @@ public class PailOpsTest extends FSTestCase {
         assertPailContents(p1.getSubPail("z/b"), "zb1");
     }
 
+    @SuppressWarnings("unchecked")
     public void metadataConflictTest(AppendOperation op) throws IOException {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
 
         //test non structured append
-        Pail p1 = Pail.create(fs, path1, new StringStructure());
-        Pail p2 = Pail.create(fs, path2, new StringStructure());
+        Pail<String> p1 = Pail.create(fs, path1, new StringStructure());
+        Pail<String> p2 = Pail.create(fs, path2, new StringStructure());
 
         emitToPail(p1, "file1", "aaa");
         emitToPail(p2, "file1", "bbb");
@@ -239,15 +246,16 @@ public class PailOpsTest extends FSTestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void metadataNonConflictTest(AppendOperation op) throws IOException {
         String path1 = getTmpPath(fs, "pail");
         String path2 = getTmpPath(fs, "pail2");
         String path3 = getTmpPath(fs, "pail3");
 
         //test non structured append
-        Pail p1 = Pail.create(fs, path1, new PailSpec(PailFormatFactory.SEQUENCE_FILE).setStructure(new StringStructure()));
-        Pail p2 = Pail.create(fs, path2, new PailSpec(PailFormatFactory.SEQUENCE_FILE).setStructure(new StringStructure()));
-        Pail p3 = Pail.create(fs, path3, new PailSpec(PailFormatFactory.SEQUENCE_FILE)
+        Pail<String> p1 = Pail.create(fs, path1, new PailSpec(PailFormatFactory.SEQUENCE_FILE).setStructure(new StringStructure()));
+        Pail<String> p2 = Pail.create(fs, path2, new PailSpec(PailFormatFactory.SEQUENCE_FILE).setStructure(new StringStructure()));
+        Pail<String> p3 = Pail.create(fs, path3, new PailSpec(PailFormatFactory.SEQUENCE_FILE)
                     .setArg(SequenceFileFormat.CODEC_ARG, SequenceFileFormat.CODEC_ARG_DEFAULT)
                     .setArg(SequenceFileFormat.TYPE_ARG, SequenceFileFormat.TYPE_ARG_BLOCK)
                     .setStructure(new StringStructure()));
@@ -361,7 +369,7 @@ public class PailOpsTest extends FSTestCase {
         }
 
         public List<String> getTarget(String object) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         public Class getType() {

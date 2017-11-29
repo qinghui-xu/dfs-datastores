@@ -5,17 +5,17 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.Reader;
 
 import java.io.IOException;
 
 public class SequenceFileInputStream implements RecordInputStream {
 
-    private SequenceFile.Reader _reader;
+    private Reader _reader;
     private BytesWritable writable = new BytesWritable();
 
     public SequenceFileInputStream(FileSystem fs, Path path) throws IOException {
-        _reader = new SequenceFile.Reader(fs, path, fs.getConf());
+        _reader = new Reader(fs.getConf(), Reader.file(path));
     }
 
     public byte[] readRawRecord() throws IOException {

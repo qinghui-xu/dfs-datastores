@@ -90,6 +90,7 @@ public class PailTap extends Hfs {
       }
     }
 
+    @SuppressWarnings("unchecked")
     protected void serialize(Object obj, BytesWritable ret) {
       if (obj instanceof BytesWritable) {
         ret.set((BytesWritable) obj);
@@ -146,6 +147,7 @@ public class PailTap extends Hfs {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public boolean source(FlowProcess<JobConf> process,
         SourceCall<Object[], RecordReader> sourceCall) throws IOException {
       Object k = sourceCall.getContext()[0];
@@ -159,6 +161,7 @@ public class PailTap extends Hfs {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void sink(FlowProcess<JobConf> process, SinkCall<Object[], OutputCollector> sinkCall)
         throws IOException {
       TupleEntry tuple = sinkCall.getOutgoingEntry();
@@ -315,6 +318,7 @@ public class PailTap extends Hfs {
   }
 
   private Path getQualifiedPath(JobConf conf) throws IOException {
-    return getPath().makeQualified(getFileSystem(conf));
+    FileSystem fs = getFileSystem(conf);
+    return getPath().makeQualified(fs.getUri(), fs.getWorkingDirectory());
   }
 }

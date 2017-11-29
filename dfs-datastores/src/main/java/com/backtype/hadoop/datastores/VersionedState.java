@@ -20,9 +20,10 @@ public class VersionedState {
         _vs = new VersionedStore(backingDir);
     }
 
+    @SuppressWarnings("unchecked")
     public synchronized Map<Object, Object> snapshot() throws IOException {
         String latestPath = _vs.mostRecentVersionPath();
-        if(latestPath==null) return new HashMap<Object, Object>();
+        if(latestPath==null) return new HashMap<>();
         return (Map<Object, Object>) Utils.deserialize(readFile(latestPath));
     }
 

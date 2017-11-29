@@ -1,6 +1,7 @@
 package com.backtype.hadoop.datastores;
 
 import com.backtype.hadoop.datastores.TimeSliceStore.Slice;
+import com.backtype.hadoop.pail.Pail;
 import com.backtype.hadoop.pail.Pail.TypedRecordOutputStream;
 import com.backtype.support.FSTestCase;
 import com.backtype.support.Utils;
@@ -15,33 +16,33 @@ import static com.backtype.support.TestUtils.*;
 
 public class TimeSliceStoreTest extends FSTestCase {
 
-    public static List readSlice(TimeSliceStore s, Slice slice) throws IOException {
-        List ret = new ArrayList();
-        Iterator it = s.openRead(slice);
-        Object o;
+    public static List<String> readSlice(TimeSliceStore<String> s, Slice slice) throws IOException {
+        List<String> ret = new ArrayList<>();
+        Iterator<String> it = s.openRead(slice);
         while(it.hasNext()) {
             ret.add(it.next());
         }
         return ret;
     }
 
-    public static void assertSliceContains(TimeSliceStore s, Slice slice, Object... objs) throws IOException {
-        Set objSet = new HashSet(readSlice(s, slice));
+    public static void assertSliceContains(TimeSliceStore<String> s, Slice slice, String... objs) throws IOException {
+        Set<String> objSet = new HashSet<>(readSlice(s, slice));
         assertEquals(objSet.size(), objs.length);
-        for(Object o: objs) {
+        for(String o: objs) {
             assertTrue(objSet.contains(o));
         }
     }
 
-    public static void writeSlice(TimeSliceStore s, Slice slice, Object... objs) throws IOException {
-        TypedRecordOutputStream os = s.openWrite(slice);
-        for(Object o: objs) {
+    public static void writeSlice(TimeSliceStore<String> s, Slice slice, String... objs) throws IOException {
+        Pail<String>.TypedRecordOutputStream os = s.openWrite(slice);
+        for(String o: objs) {
             os.writeObject(o);
         }
         os.close();
         s.finishSlice(slice);
     }
 
+    @SuppressWarnings("unchecked")
     public void testReadWrite() throws Exception {
         String tmp1 = getTmpPath(fs, "slices");
         TimeSliceStore<String> sliceStore = TimeSliceStore.create(fs, tmp1, new TimeSliceStringStructure());
@@ -62,7 +63,7 @@ public class TimeSliceStoreTest extends FSTestCase {
 
         }
         Slice slice = new Slice(Utils.weekStartTime(100), Utils.weekStartTime(100));
-        TypedRecordOutputStream os = sliceStore.openWrite(slice);
+        Pail<String>.TypedRecordOutputStream os = sliceStore.openWrite(slice);
         os.writeObject("a1");
         os.writeObject("a2");
         os.close();
@@ -119,18 +120,19 @@ public class TimeSliceStoreTest extends FSTestCase {
 
     }
 
-    protected static interface AppendOperation {
-        public void append(TimeSliceStore dest, TimeSliceStore source) throws IOException;
+    protected interface AppendOperation<T> {
+        void append(TimeSliceStore<T> dest, TimeSliceStore<T> source) throws IOException;
     }
 
-    public void appendTester(AppendOperation op) throws Exception {
+    @SuppressWarnings("unchecked")
+    public void appendTester(AppendOperation<String> op) throws Exception {
         String path1 = getTmpPath(fs, "sliceStore1");
         String path2 = getTmpPath(fs, "sliceStoreNoAppend");
         String path3 = getTmpPath(fs, "sliceStoreAppend");
 
-        TimeSliceStore base = TimeSliceStore.create(path1, new TimeSliceStringStructure());
-        TimeSliceStore invalid = TimeSliceStore.create(path2, new TimeSliceStringStructure());
-        TimeSliceStore valid = TimeSliceStore.create(path3, new TimeSliceStringStructure());
+        TimeSliceStore<String> base = TimeSliceStore.create(path1, new TimeSliceStringStructure());
+        TimeSliceStore<String> invalid = TimeSliceStore.create(path2, new TimeSliceStringStructure());
+        TimeSliceStore<String> valid = TimeSliceStore.create(path3, new TimeSliceStringStructure());
 
         writeSlice(base, new Slice(Utils.weekStartTime(90), Utils.weekStartTime(90)+1), "aa");
         writeSlice(invalid, new Slice(Utils.weekStartTime(89), Utils.weekStartTime(89)+1), "bb");
@@ -159,38 +161,39 @@ public class TimeSliceStoreTest extends FSTestCase {
     }
 
     public void testCopyAppend() throws Exception {
-        appendTester(new AppendOperation() {
-            public void append(TimeSliceStore dest, TimeSliceStore source) throws IOException {
+        appendTester(new AppendOperation<String>() {
+            public void append(TimeSliceStore<String> dest, TimeSliceStore<String> source) throws IOException {
                 dest.copyAppend(source);
             }
         });
     }
 
     public void testMoveAppend() throws Exception {
-        appendTester(new AppendOperation() {
-            public void append(TimeSliceStore dest, TimeSliceStore source) throws IOException {
+        appendTester(new AppendOperation<String>() {
+            public void append(TimeSliceStore<String> dest, TimeSliceStore<String> source) throws IOException {
                 dest.moveAppend(source);
             }
         });
     }
 
     public void testAbsorb() throws Exception {
-        appendTester(new AppendOperation() {
-            public void append(TimeSliceStore dest, TimeSliceStore source) throws IOException {
+        appendTester(new AppendOperation<String>() {
+            public void append(TimeSliceStore<String> dest, TimeSliceStore<String> source) throws IOException {
                 dest.absorb(source);
             }
         });
     }
 
+    @SuppressWarnings("unchecked")
     public void testConsolidate() throws Exception {
         String tmp = getTmpPath(fs, "sliceStore");
 
-        TimeSliceStore store = TimeSliceStore.create(tmp, new TimeSliceStringStructure());
+        TimeSliceStore<String> store = TimeSliceStore.create(tmp, new TimeSliceStringStructure());
         writeSlice(store, new Slice(Utils.weekStartTime(90), Utils.weekStartTime(90)+1), "aa", "bb");
         writeSlice(store, new Slice(Utils.weekStartTime(90), Utils.weekStartTime(90)+2), "cc");
 
         Slice slice = new Slice(Utils.weekStartTime(100), Utils.weekStartTime(100));
-        TypedRecordOutputStream os = store.openWrite(slice);
+        Pail<String>.TypedRecordOutputStream os = store.openWrite(slice);
         os.writeObject("dd");
         os.close();
         os = store.openWrite(slice);

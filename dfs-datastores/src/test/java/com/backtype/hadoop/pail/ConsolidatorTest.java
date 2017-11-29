@@ -20,9 +20,10 @@ import static com.backtype.support.TestUtils.getTmpPath;
 
 public class ConsolidatorTest extends FSTestCase {
 
+    @SuppressWarnings("unchecked")
     public void testConsolidationOne() throws Exception {
         String path = getTmpPath(local, "pail");
-        Pail pail = Pail.create(local, path);
+        Pail<byte[]> pail = Pail.create(local, path);
         writeStrings(pail, "aaa", "a", "b", "c", "d", "e");
         writeStrings(pail, "b/c/ddd", "1", "2", "3");
         writeStrings(pail, "b/c/eee", "aaa", "bbb", "ccc", "ddd", "eee", "fff");
@@ -41,9 +42,10 @@ public class ConsolidatorTest extends FSTestCase {
         assertEquals("lalala", pail.getMetadata("a/b/qqq"));
     }
 
+    @SuppressWarnings("unchecked")
     public void testConsolidationMany() throws Exception {
         String path = getTmpPath(local, "pail");
-        Pail pail = Pail.create(local, path);
+        Pail<byte[]> pail = Pail.create(local, path);
         writeStrings(pail, "aaa", "a", "b", "c", "d", "e");
         writeStrings(pail, "b/c/ddd", "1", "2", "3");
         writeStrings(pail, "b/c/eee", "aaa", "bbb", "ccc", "ddd", "eee", "fff");
@@ -60,6 +62,7 @@ public class ConsolidatorTest extends FSTestCase {
         assertEquals(expected, results);
     }
 
+    @SuppressWarnings("unchecked")
     public void testConsolidateStructured() throws Exception {
         String path = getTmpPath(fs, "pail");
         Pail<String> pail = Pail.create(fs, path, PailFormatFactory.getDefaultCopy().setStructure(new TestStructure()));
@@ -84,6 +87,7 @@ public class ConsolidatorTest extends FSTestCase {
         assertPailContents(pail.getSubPail("z/a"), "za1", "za2", "za3");
     }
 
+    @SuppressWarnings("unchecked")
     public void testConsolidateRecovery() throws Exception {
         String path = getTmpPath(fs, "pail");
         Pail<String> pail = Pail.create(fs, path, PailFormatFactory.getDefaultCopy().setStructure(new TestStructure()));

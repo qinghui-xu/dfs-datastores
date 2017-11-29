@@ -214,7 +214,7 @@ public abstract class AbstractPail {
         FileStatus[] contents = listStatus(absDir);
         for(FileStatus fs: contents) {
             String name = fs.getPath().getName();
-            if((fs.isDir() && dir || !fs.isDir() && !dir) && !name.contains("_")) {
+            if((fs.isDirectory() && dir || !fs.isDirectory() && !dir) && !name.contains("_")) {
                 ret.add(name);
             }
         }

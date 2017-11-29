@@ -32,8 +32,8 @@ public class PailInputSplit extends FileSplit {
 
     private void setRelPath(FileSystem fs, String root) {
         Path filePath = super.getPath();
-        filePath = filePath.makeQualified(fs);
-        Path rootPath = new Path(root).makeQualified(fs);
+        filePath = filePath.makeQualified(fs.getUri(), fs.getWorkingDirectory());
+        Path rootPath = new Path(root).makeQualified(fs.getUri(), fs.getWorkingDirectory());
 
         List<String> dirs = new LinkedList<String>();
         Path curr = filePath.getParent();

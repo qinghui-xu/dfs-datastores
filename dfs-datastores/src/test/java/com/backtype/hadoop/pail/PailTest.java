@@ -125,9 +125,10 @@ public class PailTest extends TestCase {
         return returned;
     }
 
+    @SuppressWarnings("unchecked")
     public void testIterator() throws Exception {
         String path = getTmpPath(local, "pail");
-        Pail pail = Pail.create(local, path);
+        Pail<byte[]> pail = Pail.create(local, path);
         Set<String> records = new HashSet<String>();
         records.add("aaaaa");
         records.add("bb");
@@ -249,6 +250,7 @@ public class PailTest extends TestCase {
         return ret;
     }
 
+    @SuppressWarnings("unchecked")
     public void testStructured() throws Exception {
         String path = getTmpPath(local, "pail");
         Pail<String> pail = Pail.create(local, path, PailFormatFactory.getDefaultCopy().setStructure(new TestStructure()));
@@ -262,14 +264,14 @@ public class PailTest extends TestCase {
         os.writeObject("zb1");
         os.close();
 
-        pail = new Pail(local, path);
+        pail = new Pail<>(local, path);
         assertPailContents(pail, "a1", "b1", "c1", "a2", "za1", "za2", "zb1");
         assertPailContents(pail.getSubPail("a"), "a1", "a2");
         assertPailContents(pail.getSubPail("a/1"));
         assertPailContents(pail.getSubPail("z"), "za1", "za2", "zb1");
         assertPailContents(pail.getSubPail("z/a"), "za1", "za2");
 
-        Pail a = new Pail(local, path + "/a");
+        Pail<String> a = new Pail<>(local, path + "/a");
         os = a.openWrite();
         os.writeObject("a2222");
         try {

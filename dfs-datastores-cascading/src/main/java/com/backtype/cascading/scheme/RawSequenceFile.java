@@ -49,6 +49,7 @@ public class RawSequenceFile
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public boolean source(FlowProcess<JobConf> prcs, SourceCall<Object[], RecordReader> sourceCall)
       throws IOException {
 

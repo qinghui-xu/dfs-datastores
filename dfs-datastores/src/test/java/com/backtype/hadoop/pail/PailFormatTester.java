@@ -29,6 +29,7 @@ public abstract class PailFormatTester extends TestCase {
         local = FileSystem.getLocal(new Configuration());
     }
 
+    @SuppressWarnings("unchecked")
     public void testInputFormat() throws Exception {
         String path = getTmpPath(local, "pail");
         Pail pail = Pail.create(local, path);

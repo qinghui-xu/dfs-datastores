@@ -37,7 +37,7 @@ public class PailTapTest extends FSTestCase {
 
         public void operate(FlowProcess fp, FunctionCall fc) {
             TupleEntry t = fc.getArguments();
-            String res = new String(Utils.getBytes((BytesWritable) t.get(0))) + "1";
+            String res = new String(Utils.getBytes((BytesWritable) t.getObject(0))) + "1";
             fc.getOutputCollector().add(new Tuple(new BytesWritable(res.getBytes())));
         }
 
