@@ -71,6 +71,9 @@ public class Consolidator {
 
         // prevent 2 running instances running at the same time
         // add the ability to recover from failure
+        if(thePail.isEmpty()) {
+            return;
+        }
 
         JobConf conf = new JobConf(fs.getConf(), Consolidator.class);
         String fsUri = fs.getUri().toString();
