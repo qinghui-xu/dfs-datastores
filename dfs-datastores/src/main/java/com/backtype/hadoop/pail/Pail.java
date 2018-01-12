@@ -565,7 +565,7 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
         if ("file".equals(_fs.getScheme())) {
             conf.set("fs.AbstractFileSystem.file.impl", LocalFsWithoutBug.class.getName());
         }
-        FileContext fileContext = FileContext.getFileContext(conf);
+        FileContext fileContext = FileContext.getFileContext(_fs.getUri(), conf);
         fileContext.rename(source, dest, Options.Rename.OVERWRITE);
         return true;
     }
