@@ -64,7 +64,7 @@ public class SequenceFileFormat implements PailFormat {
     }
 
     public RecordInputStream getInputStream(FileSystem fs, Path path) throws IOException {
-        return new SequenceFileInputStream(fs, path);
+        return new SequenceFileInputStream(fs, path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
     }
 
     public RecordOutputStream getOutputStream(FileSystem fs, Path path) throws IOException {
@@ -72,9 +72,9 @@ public class SequenceFileFormat implements PailFormat {
         CompressionCodec codec = CODECS.get(_codecArg);
 
         if(type==null)
-            return new SequenceFileOutputStream(fs, path);
+            return new SequenceFileOutputStream(fs, path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
         else
-            return new SequenceFileOutputStream(fs, path, type, codec);
+            return new SequenceFileOutputStream(fs, path.makeQualified(fs.getUri(), fs.getWorkingDirectory()), type, codec);
     }
 
     public Class<? extends InputFormat> getInputFormatClass() {
