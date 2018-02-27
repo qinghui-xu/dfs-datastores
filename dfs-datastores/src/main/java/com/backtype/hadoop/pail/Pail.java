@@ -181,10 +181,10 @@ public class Pail<T> extends AbstractPail implements Iterable<T>{
         PailSpec existing = getSpec(fs, pathp);
         if(failOnExists) {
             if(existing!=null) {
-                throw new IllegalArgumentException("Pail already exists at path " + path + " with spec " + existing.toString());
+                throw new PailAlreadyExistentException("Pail already exists at path " + path + " with spec " + existing.toString());
             }
             if(fs.exists(pathp))
-                throw new IllegalArgumentException("Path " + path + " already exists");
+                throw new PailAlreadyExistentException("Path " + path + " already exists");
         }
         if(spec!=null && existing!=null) {
             if(spec.getName()!=null) {
