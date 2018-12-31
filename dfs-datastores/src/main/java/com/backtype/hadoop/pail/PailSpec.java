@@ -13,6 +13,7 @@ import org.jvyaml.YAML;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class PailSpec implements Writable, Serializable {
@@ -91,7 +92,6 @@ public class PailSpec implements Writable, Serializable {
         else return structure;
     }
 
-
     public static PailSpec readFromFileSystem(FileSystem fs, Path path) throws IOException {
         FSDataInputStream is = fs.open(path);
         PailSpec ret = parseFromStream(is);
@@ -149,10 +149,23 @@ public class PailSpec implements Writable, Serializable {
         return format;
     }
 
+    /**
+     * Write pail spec to a file atomically.
+     *
+     * @param fs
+     * @param path
+     * @throws IOException
+     */
     public void writeToFileSystem(FileSystem fs, Path path) throws IOException {
-        FSDataOutputStream os = fs.create(path);
-        writeToStream(os);
-        os.close();
+        UUID uuid = UUID.randomUUID();
+        Path tmpPath = new Path(path.getParent(), "." + uuid + "." + path.getName());
+        FSDataOutputStream os = fs.create(tmpPath);
+        try {
+            writeToStream(os);
+        } finally {
+            os.close();
+        }
+        fs.rename(tmpPath, path);
     }
 
     public void write(DataOutput d) throws IOException {
